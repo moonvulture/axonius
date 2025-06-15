@@ -1,0 +1,5 @@
+# config file
+
+ES_URL: https://home-lab-ce1d10.kb.us-central1.gcp.elastic.cloud
+ES_INDEX: logs-cisco_ise.log
+ES_PIPELINE: logs-cisco_ise.log-1.27.0-pipeline_passed_authentications
