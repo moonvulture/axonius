@@ -4,112 +4,41 @@ from elasticsearch.helpers import bulk
 from typing import List, Dict, Any
 from utils.logger import get_logger, LoggedOperation, log_api_request, log_data_stats, log_elasticsearch_operation
 from utils.formatter import *
-
+import from axoniusApi import AxoniusAPI
 # Get configured logger
 logger = get_logger(__name__)
 
-
-def get_and_format_axonius_data() -> List[Dict[str, Any]]:
-    """Fetch and format host data from Axonius API"""
+def get_user_data():
+    """Example: Get user data for security analysis"""
+    with AxoniusAPI(AXONIUS_CONFIG, logger) as api:
+        return api.get_all_assets('users')
+    
+def updated_get_and_format_axonius_data() -> List[Dict[str, Any]]:
+    """Updated version of your existing function using the context manager"""
     
     with LoggedOperation(logger, "Axonius data fetch and format"):
-        base_url = f"https://{AXONIUS_CONFIG['instance_url']}/api/v2"
-        headers = {
-            'accept': 'application/json',
-            'api-key': AXONIUS_CONFIG['api_key'],
-            'api-secret': AXONIUS_CONFIG['api_secret'],
-        }
-        
-        try:
-            # Check discovery status
-            logger.info("Checking Axonius discovery status...")
-            discovery_url = f'{base_url}/discovery'
-            response = requests.get(url=discovery_url, headers=headers)
-            log_api_request(logger, "GET", discovery_url, response.status_code)
-            response.raise_for_status()
-            
-            discovery_result = response.json()
-            
-            if not discovery_result.get('has_succeeded'):
-                logger.error("Discovery check failed - discovery has not succeeded")
-                return []
-            
-            logger.info("Discovery check successful, proceeding to fetch assets...")
-            
-            # Add content-type for asset request
-            headers['content-type'] = 'application/json'
-            
-            # Request parameters - fetch more data by increasing limit
-            body_params = {
-                'include_metadata': True,
-                'page': {
-                    'limit': 100,  # Increased limit for more data
-                    'offset': 0
-                },
-                'use_cache_entry': True,
-                'return_plain_data': True,
-                'fields': [
+        with AxoniusAPI(AXONIUS_CONFIG, logger) as api:
+            try:
+                # Check discovery status
+                if not api.check_discovery_status():
+                    logger.error("Discovery check failed - discovery has not succeeded")
+                    return []
+                
+                logger.info("Discovery check successful, proceeding to fetch assets...")
+                
+                # Get assets with your specific fields
+                device_fields = [
                     'specific_data.data.hostname',
                     'specific_data.data.network_interfaces.ips_preferred',
                     'specific_data.data.network_interfaces.mac_preferred',
-                    'specific_data.data.last_seen',  # Added last seen field
-                    'adapters_data.axonius_adapter.last_seen',  # Alternative last seen field
-                ],
-            }
-            
-            # Get device assets
-            assets_url = f'{base_url}/assets/devices'
-            logger.info(f"Requesting assets with limit: {body_params['page']['limit']}")
-            
-            response = requests.get(
-                url=assets_url,
-                headers=headers,
-                json=body_params,
-            )
-            log_api_request(logger, "GET", assets_url, response.status_code)
-            response.raise_for_status()
-            
-            assets_result = response.json()
-            raw_assets = assets_result.get('assets', [])
-            log_data_stats(logger, "Raw assets retrieved", len(raw_assets))
-            
-            # Format the data immediately after fetching
-            formatted_assets = []
-            
-            for i, asset in enumerate(raw_assets):
-                try:
-                    formatted_asset = {}
-                    
-                    # Extract and format basic fields
-                    formatted_asset['hostname'] = normalize_hostname(asset.get('specific_data.data.hostname'))
-                    formatted_asset['ip_addresses'] = normalize_ip_addresses(asset.get('specific_data.data.network_interfaces.ips_preferred'))
-                    formatted_asset['mac_addresses'] = normalize_mac_addresses(asset.get('specific_data.data.network_interfaces.mac_preferred'))
-                    
-                    # Extract and format last seen date to ECS format
-                    formatted_asset['last_seen'] = format_last_seen_date(
-                        asset.get('specific_data.data.last_seen') or 
-                        asset.get('adapters_data.axonius_adapter.last_seen')
-                    )
-                    
-                    # Add original asset data for reference if needed
-                    formatted_asset['_original'] = asset
-                    
-                    formatted_assets.append(formatted_asset)
-                    
-                except Exception as e:
-                    logger.warning(f"Failed to format asset {i}: {e}")
-                    continue
-            
-            log_data_stats(logger, "Assets formatted for ECS compatibility", len(formatted_assets))
-            return formatted_assets
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request error while fetching data from Axonius: {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Unexpected error during Axonius data fetch: {e}")
-            return []
-
+                    'specific_data.data.last_seen',
+                    'adapters_data.axonius_adapter.last_seen',
+                ]
+                
+                # Get all devices (with automatic pagination if needed)
+                all_devices = api.get_all_assets('devices', fields=device_fields, max_records=1000)
+                log_data_stats(logger, "Raw assets retrieved", len(all_devices))
+    
 
 def create_index_if_not_exists(es_client: Elasticsearch):
     """Create the index with appropriate mapping if it doesn't exist"""
