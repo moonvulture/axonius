@@ -1,6 +1,7 @@
 from datetime import datetime
 import re
 
+logger = get_logger(__name__)
 
 def transform_data_for_elasticsearch(formatted_assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Transform formatted Axonius data to Elasticsearch document format"""

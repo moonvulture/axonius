@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, cast
 
 
 class AxoniusLogger:
@@ -54,7 +54,7 @@ class AxoniusLogger:
 
 
 # Default logger instance
-def get_logger(name: str = __name__, log_level: str = None) -> logging.Logger:
+def get_logger(name: str = __name__, log_level: str = "INFO") -> logging.Logger:
     """
     Get a configured logger instance
     
@@ -86,6 +86,10 @@ class LoggedOperation:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.start_time is None:
+            self.logger.error(f"{self.operation_name} exited before it started")
+            return False
+
         duration = datetime.now() - self.start_time
         
         if exc_type is None:
