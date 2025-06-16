@@ -1,5 +1,37 @@
 # config file
 
+# Elasticsearch Configuration
 ES_URL: https://home-lab-ce1d10.kb.us-central1.gcp.elastic.cloud
 ES_INDEX: logs-cisco_ise.log
 ES_PIPELINE: logs-cisco_ise.log-1.27.0-pipeline_passed_authentications
+
+# Axonius Configuration
+AX_INSTANCE_URL: your-axonius-instance.com  # Replace with your actual Axonius instance URL
+
+# Axonius Device Fields to Retrieve
+AX_DEVICE_FIELDS:
+  - specific_data.data.hostname
+  - specific_data.data.network_interfaces.ips_preferred
+  - specific_data.data.network_interfaces.mac_preferred
+  - specific_data.data.last_seen
+  - adapters_data.axonius_adapter.last_seen
+  - specific_data.data.os.type
+  - specific_data.data.os.version
+  - specific_data.data.network_interfaces.subnets
+
+# Axonius User Fields to Retrieve (if needed)
+AX_USER_FIELDS:
+  - specific_data.data.username
+  - specific_data.data.email
+  - specific_data.data.last_logon
+  - specific_data.data.domain
+  - specific_data.data.department
+
+# Application Settings
+LOG_LEVEL: INFO
+LOG_FILE: logs/axonius-pipeline.log
+
+# Processing Settings
+BATCH_SIZE: 100
+MAX_RECORDS: 1000
+REQUEST_TIMEOUT: 60
