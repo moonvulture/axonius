@@ -25,9 +25,9 @@ class AxoniusAPI:
         # Store configured fields and settings
         self.device_fields = config.get('device_fields', [])
         self.user_fields = config.get('user_fields', [])
-        self.batch_size = config.get('batch_size', 100)
-        self.max_records = config.get('max_records', 1000)
-        self.request_timeout = config.get('request_timeout', 60)
+        self.batch_size = int(config.get('batch_size', 100))
+        self.max_records = int(config.get('max_records', 1000))
+        self.request_timeout = int(config.get('request_timeout', 60))
 
     def __enter__(self):
         """Setup authenticated session"""
@@ -68,6 +68,7 @@ class AxoniusAPI:
             True if discovery is successful, False otherwise
         """
         try:
+            assert self.session is not None
             response = self.session.get(f'{self.base_url}/discovery', timeout=self.request_timeout)
             response.raise_for_status()
             
@@ -102,14 +103,12 @@ class AxoniusAPI:
             API response as dictionary
         """
         # Use provided fields or get from config based on asset type
-        if fields is None:
-            if asset_type == 'devices':
-                fields = self.device_fields
-            elif asset_type == 'users':
-                fields = self.user_fields
-            else:
-                # Default fallback fields for unknown asset types
-                fields = []
+        if asset_type == 'devices':
+            fields = self.device_fields
+        elif asset_type == 'users':
+            fields = self.user_fields
+        else:
+            fields = []
         
         # Use provided limit or get from config
         if limit is None:

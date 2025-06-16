@@ -1,11 +1,11 @@
 from datetime import datetime
 from utils.logger import get_logger, LoggedOperation, log_api_request, log_data_stats, log_elasticsearch_operation
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 import re
 
 logger = get_logger(__name__)
 
-def transform_data_for_elasticsearch(formatted_assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def transform_data_for_elasticsearch(formatted_assets: List[Dict[str, Any]], index_name: str) -> List[Dict[str, Any]]:
     """Transform formatted Axonius data to Elasticsearch document format"""
     
     documents = []
@@ -26,7 +26,7 @@ def transform_data_for_elasticsearch(formatted_assets: List[Dict[str, Any]]) -> 
         
         # Create document in the specified format with ECS fields
         doc = {
-            '_index': INDEX_NAME,
+            '_index': index_name,
             '_source': {
                 'host': {
                     'ip': primary_ip,
@@ -54,7 +54,75 @@ def transform_data_for_elasticsearch(formatted_assets: List[Dict[str, Any]]) -> 
     return documents
 
 
-def format_last_seen_date(last_seen_data: Any) -> str:
+def format_axonius_data(raw_assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Format raw Axonius asset data into a standardized format
+    
+    Args:
+        raw_assets: List of raw asset dictionaries from Axonius API
+        
+    Returns:
+        List of formatted asset dictionaries
+    """
+    formatted_assets = []
+    
+    for asset in raw_assets:
+        try:
+            # Extract hostname
+            hostname = None
+            if 'specific_data' in asset and 'data' in asset['specific_data']:
+                hostname = asset['specific_data']['data'].get('hostname')
+            hostname = normalize_hostname(hostname)
+            
+            # Extract IP addresses
+            ip_addresses = []
+            if 'specific_data' in asset and 'data' in asset['specific_data']:
+                network_interfaces = asset['specific_data']['data'].get('network_interfaces', {})
+                ips_preferred = network_interfaces.get('ips_preferred')
+                ip_addresses = normalize_ip_addresses(ips_preferred)
+            
+            # Extract MAC addresses
+            mac_addresses = []
+            if 'specific_data' in asset and 'data' in asset['specific_data']:
+                network_interfaces = asset['specific_data']['data'].get('network_interfaces', {})
+                mac_preferred = network_interfaces.get('mac_preferred')
+                mac_addresses = normalize_mac_addresses(mac_preferred)
+            
+            # Extract last seen date
+            last_seen = None
+            # Try specific_data first
+            if 'specific_data' in asset and 'data' in asset['specific_data']:
+                last_seen = asset['specific_data']['data'].get('last_seen')
+            
+            # Fallback to adapter data if needed
+            if not last_seen and 'adapters_data' in asset:
+                axonius_adapter = asset['adapters_data'].get('axonius_adapter', {})
+                last_seen = axonius_adapter.get('last_seen')
+            
+            last_seen = format_last_seen_date(last_seen)
+            
+            # Create formatted asset
+            formatted_asset = {
+                'hostname': hostname,
+                'ip_addresses': ip_addresses,
+                'mac_addresses': mac_addresses,
+                'last_seen': last_seen
+            }
+            
+            # Only add assets that have at least hostname or IP
+            if hostname or ip_addresses:
+                formatted_assets.append(formatted_asset)
+                
+        except Exception as e:
+            logger.error(f"Error formatting asset: {e}")
+            logger.debug(f"Problematic asset data: {asset}")
+            continue
+    
+    logger.info(f"Successfully formatted {len(formatted_assets)} assets out of {len(raw_assets)} raw assets")
+    return formatted_assets
+
+
+def format_last_seen_date(last_seen_data: Any) -> Optional[str]:
     """Format last seen date to ECS-compliant ISO 8601 format"""
     if not last_seen_data:
         return None
@@ -143,7 +211,7 @@ def normalize_mac_addresses(mac_data: Any) -> List[str]:
     return clean_macs
 
 
-def normalize_hostname(hostname: Any) -> str:
+def normalize_hostname(hostname: Any) -> Optional[str]:
     """Normalize hostname data"""
     if not hostname:
         return None
