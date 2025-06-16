@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Optional, cast
+from typing import Optional
 
 
 class AxoniusLogger:
@@ -118,7 +118,7 @@ def log_data_stats(logger: logging.Logger, operation: str, count: int, details: 
     logger.info(message)
 
 
-def log_elasticsearch_operation(logger: logging.Logger, operation: str, index: str, count: int = None):
+def log_elasticsearch_operation(logger: logging.Logger, operation: str, index: str, count: Optional[int] = None):
     """Log Elasticsearch operations"""
     message = f"Elasticsearch {operation} - Index: {index}"
     if count is not None:
