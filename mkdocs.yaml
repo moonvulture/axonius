@@ -1,0 +1,34 @@
+site_name: Elastic Field Mapping
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - content.code.copy
+    - content.code.annotate
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed
+  - pymdownx.snippets
+  - pymdownx.emoji
+  - toc:
+      permalink: true
+  - pymdownx.tasklist
+  - pymdownx.mark
+  - pymdownx.keys
+  - pymdownx.betterem
+  - pymdownx.magiclink
+  - pymdownx.caret
+  - pymdownx.tilde
+  - pymdownx.critic
+plugins:
+  - search
+  - mkdocs-mermaid2-plugin
+nav:
+  - Home: index.md
+  - Mappings:
+      - Cisco ISE: mappings/cisco-ise.md
+      - Tenable: mappings/tenable.md
