@@ -9,5 +9,3 @@ graph TD
 
   callingStationID --> clientIP
   endpointID --> hostname
-  Event ID --> event.code
-  Auth Status --> event.outcome
