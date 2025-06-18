@@ -1,0 +1,11 @@
+pages:
+  image: python:3.11
+  stage: deploy
+  before_script:
+    - pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin
+  script:
+    - mkdocs build
+    - mv site public
+  artifacts:
+    paths:
+      - public
