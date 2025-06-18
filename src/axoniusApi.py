@@ -133,11 +133,14 @@ class AxoniusAPI:
         # Make request
         url = f'{self.base_url}/assets/{asset_type}'
         
+        assert self.session is not None
         # Set content-type for POST-like requests
         self.session.headers['content-type'] = 'application/json'
         
         self.logger.info(f"Requesting {asset_type} assets (limit: {limit}, offset: {offset}, fields: {len(fields)})")
         self.logger.debug(f"Fields requested: {fields}")
+        
+        assert self.session is not None
         
         response = self.session.get(url, json=params, timeout=self.request_timeout)
         response.raise_for_status()
