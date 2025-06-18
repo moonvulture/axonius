@@ -1,13 +1,16 @@
-## Visual Map
-
-```mermaid
 graph TD
-  callingStationID["ISE: Calling-Station-ID"]
-  clientIP["Elastic: client.ip"]
-  endpointID["ISE: Endpoint ID"]
-  hostname["Elastic: host.hostname"]
-  authStatus["ISE: Auth Status"]
-  eventOutcome["Elastic: event.outcome"]
-  authStatus --> eventOutcome
+  subgraph ISE Logs
+    callingStationID["ISE: Calling-Station-ID"]
+    endpointID["ISE: Endpoint ID"]
+    authStatus["ISE: Auth Status"]
+  end
+
+  subgraph Elasticsearch
+    clientIP["Elastic: client.ip"]
+    hostname["Elastic: host.hostname"]
+    eventOutcome["Elastic: event.outcome"]
+  end
+
   callingStationID --> clientIP
   endpointID --> hostname
+  authStatus --> eventOutcome
